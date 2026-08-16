@@ -1,4 +1,4 @@
-import os, string, torch
+import os, string, torch, gc
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
@@ -8,13 +8,15 @@ app = FastAPI()
 app.add_middleware(CORSMiddleware, allow_origins=["*"], allow_methods=["*"], allow_headers=["*"])
 
 # ⚠️ CHANGE THIS TO YOUR HUGGING FACE MODEL ID ⚠️
-MODEL_ID = "Umarzo/kronar-brain"
+MODEL_ID = "Umarzo/kronar-brain" 
 
 print(f"Downloading Kronar from {MODEL_ID}...")
 tokenizer = AutoTokenizer.from_pretrained(MODEL_ID)
-# We use float16 to keep memory under Koyeb's 512MB free tier limit!
-model = AutoModelForCausalLM.from_pretrained(MODEL_ID, torch_dtype=torch.float16, low_cpu_mem_usage=True)
+
+# low_cpu_mem_usage=True is REQUIRED to fit inside Render's 512MB RAM limit
+model = AutoModelForCausalLM.from_pretrained(MODEL_ID, torch_dtype=torch.float32, low_cpu_mem_usage=True)
 model.eval()
+gc.collect() # Force garbage collection to free up temporary loading memory
 print("Kronar is awake.")
 
 CRISIS = ["kill myself", "suicide", "end my life", "want to die", "want to disappear", "overdose", "jump", "worthless", "pills", "bridge", "knife"]
